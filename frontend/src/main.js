@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, desktopCapturer } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -10,10 +10,12 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
+    width: 600,
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: false,
     },
   });
 
@@ -24,12 +26,24 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  mainWindow.setMinimumSize(600, 400);
+  mainWindow.setMinimumSize(600, 600);
   mainWindow.setMaximumSize(1920, 1080);
   mainWindow.removeMenu();
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
+
+  // Open the DevTools.
+  mainWindow.webContents.openDevTools();
   
 };
+
+// IPC handler for screen capture
+ipcMain.handle('capture-screen', async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: { width: 1920, height: 1080 }
+  });
+  return sources[0]?.id;
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
